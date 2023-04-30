@@ -58,6 +58,6 @@ async def on_message(message):
         Input.clear()
         Cinput.clear()
         Winput.clear()
-        Raw.clear()   
+    Raw.clear()   
         
 client.run(BotID)
