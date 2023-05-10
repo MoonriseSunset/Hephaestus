@@ -2,6 +2,8 @@
 #Bot permission integer: 137439472704
 #NOTE: this program will NOT run correctly by itself! There are parts of the code that need to be filled in by the user.
 
+#Code under AGPL-3.0 License
+
 #All the initial imports and variables we need
 import discord
 from secret import BotID
