@@ -1,78 +1,106 @@
 # Dev: MoonriseSunset
 # License: MIT
 
-#To use this framework, take a look at the README or at the github page :)
-#Bot permission integer: 137439472704
-#NOTE: this program will NOT run correctly by itself! There are parts of the code that need to be filled in by the user.
+# To use this framework, take a look at the README or at the github page :)
+# Bot permission integer: 137439472704
+# NOTE: this program will NOT run correctly by itself! There are parts of the code that need to be filled in by the user.
 
-#All the initial imports and variables we need
 import discord
+from discord.ext import commands
 from secret import BotID
+
+# Set up intents
 intents = discord.Intents.default()
 intents.message_content = True
-client = discord.Client(intents=intents)
 
-#The trigger and prefix variables store what will trigger the bot if seen in a message
-#Either can be disabled by disabling the respective trigger/prefixEnabled variable to False
-#Note that the trigger and prefix are case-INSENSITIVE, check the README on how to make it case-sensitive.
+# Note that the trigger and prefix are case-INSENSITIVE, check the README on how to make it case-sensitive.
 trigger = ""
 triggerEnabled = False
 
 prefix = "!"
 prefixEnabled = True
 
-#The Raw and -input list variables store the user's message as well as modified forms of it
-Raw = []        #stores any raw message detected by the bot, even if the message doesn't trigger it
-Input = []      #stores the message split up into individual letters without the prefix
-Cinput = []     #Concatenated-Input
-Winput = []     #Word-Input, stores the triggered input but is split into the individual words.
-command = ""    #the command variable stores the 0th index value of Winput, which will have whatever command the user makes
+# Create bot instance with command prefix
+bot = commands.Bot(command_prefix=prefix, intents=intents)
 
-#integer which tells the cutter function at what index value the actual message - the prefix/command starts
-startAt = 0
-
-#These next lines print a confirmation that the python file has successfully logged into the bot.
-@client.event
+@bot.event
 async def on_ready():
-    print(f'Success! The program has logged into {client.user}')
+    print(f'Success! The program has logged into {bot.user}')
+    print(f'Bot ID: {bot.user.id}')
+    print(f'Discord.py version: {discord.__version__}')
 
-#Here is the main part of the code, which is triggered whenever a message is sent in a channel the bot can access
-@client.event
+@bot.event
 async def on_message(message):
-
-    #this function can be triggered by the bot itself, so this statement stops the bot from responding to itself
-    if message.author == client.user:
+    # Ignore messages from the bot itself
+    if message.author == bot.user:
         return
 
-    Raw = [message.content,]    #storing the user message
-
-    if(
-        str(str(Raw[0])).lower().find(trigger,0,(len(trigger))) == 0 and triggerEnabled == True or
-        message.content.startswith(prefix) and prefixEnabled == True
-    ):  #This massive statement is what lets the bot tell if it should act or not
+    # Store original message content
+    raw_content = message.content
+    
+    # Check if message starts with trigger or prefix
+    should_process = False
+    start_at = 0
+    
+    if triggerEnabled and trigger and raw_content.lower().startswith(trigger.lower()):
+        should_process = True
+        start_at = len(trigger)
+    elif prefixEnabled and raw_content.startswith(prefix):
+        should_process = True
+        start_at = len(prefix)
+    
+    if should_process:
+        # Extract the command and arguments
+        command_input = raw_content[start_at:].strip()
+        word_input = command_input.split()
         
-        #This next block removes the prefix/trigger from the message and stores it in our Input lists.
-        if(message.content.startswith(prefix) == True):
-            startAt = len(prefix) - 1
-        else:
-            startAt = len(trigger)
-        for count, letter in enumerate(Raw[0]):
-            if(count > startAt):
-                Input.append(letter)
-        Cinput = [''.join(Input),]
-        Winput = Cinput[0].split()
-        command = str(Winput[0]).lower()
+        if word_input:  # Make sure there's at least one word
+            command = word_input[0].lower()
+            
+            # Command handling
+            if command == "hi":
+                await message.channel.send("Hello there!")
+            elif command == "ping":
+                await message.channel.send("Pong!")
+            elif command == "info":
+                embed = discord.Embed(
+                    title="Bot Information",
+                    description=f"Running Discord.py {discord.__version__}",
+                    color=0x00ff00
+                )
+                await message.channel.send(embed=embed)
+    
+    # Process commands (important for commands.Bot)
+    await bot.process_commands(message)
 
-        #an example of how to create a command
-        if(command == "hi"):
-            await message.channel.send("Hello there!")
+# Example slash command (modern Discord feature)
+@bot.slash_command(name="hello", description="Say hello!")
+async def hello_slash(ctx):
+    await ctx.respond("Hello from slash command!")
 
+# Example traditional command using commands framework
+@bot.command(name="test")
+async def test_command(ctx, *, args=None):
+    """A test command"""
+    if args:
+        await ctx.send(f"You said: {args}")
+    else:
+        await ctx.send("This is a test command!")
 
+# Error handling
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        return  # Ignore command not found errors
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("Missing required argument!")
+    else:
+        print(f"An error occurred: {error}")
 
-
-        Input.clear()
-        Cinput.clear()
-        Winput.clear()
-        Raw.clear()         #Clearing all the lists so that the bot doesn't get bogged down with previous messages
-        
-client.run(BotID)
+if __name__ == "__main__":
+    try:
+        bot.run(BotID)
+    except discord.LoginFailure:
+        print("Invalid bot token!")
+    except Exception as e:
+        print(f"An error occurred while running the bot: {e}")
